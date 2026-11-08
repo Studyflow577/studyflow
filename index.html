@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7665D8">
+<meta name="description" content="STUDYFLOW turns study goals into a simple daily plan.">
+<link rel="manifest" href="manifest.webmanifest">
+<title>STUDYFLOW — Your day, in focus</title>
+<style>
+:root{--purple:#7665d8;--deep:#30285f;--lav:#eeeaff;--ink:#24213a;--muted:#77748d;--bg:#f7f6fc;--white:#fff;--line:#ebe9f3;--green:#31866b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer;border:0}
+.app{max-width:1040px;margin:auto;padding:20px 18px 100px}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 0 22px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:850;letter-spacing:.08em;color:var(--deep)}
+.mark{width:36px;height:36px;border-radius:12px;background:var(--purple);display:grid;place-items:center;color:white;font-weight:900;font-size:20px}
+.pill{border-radius:99px;background:var(--lav);color:var(--deep);padding:7px 12px;font-size:12px;font-weight:700}
+h1{font-size:clamp(27px,5vw,39px);line-height:1.1;margin:8px 0}
+.sub{color:var(--muted);margin:8px 0 22px}
+.layout{display:grid;grid-template-columns:1.45fr .85fr;gap:18px}
+.card{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 5px 20px #30285f08}
+.card h2{font-size:17px;margin:0 0 14px}
+.hero{background:linear-gradient(130deg,#7665d8,#9c8fea);color:white;border:0}
+.hero .sub{color:#f0edff;margin-bottom:18px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.stat{background:#ffffff20;border:1px solid #ffffff30;border-radius:14px;padding:12px}
+.stat b{display:block;font-size:23px}.stat span{font-size:11px;opacity:.9}
+.progress{height:9px;border-radius:99px;background:#ffffff40;overflow:hidden;margin-top:9px}.progress i{display:block;height:100%;background:#fff;border-radius:99px;width:0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.task{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line)}
+.task:last-child{border:0}.task input{width:19px;height:19px;accent-color:var(--purple)}
+.task .name{font-weight:650}.task small{display:block;color:var(--muted);margin-top:2px}
+.done .name{text-decoration:line-through;color:#9995aa}
+.btn{background:var(--purple);color:white;padding:11px 15px;border-radius:12px;font-weight:750}
+.btn.secondary{background:var(--lav);color:var(--deep)}
+.btn.ghost{background:transparent;color:var(--muted);padding:7px}
+.addrow{display:flex;gap:8px;margin-top:13px}.addrow input{min-width:0;flex:1;border:1px solid var(--line);border-radius:12px;padding:11px 12px;outline-color:var(--purple)}
+.timer{text-align:center;padding:12px 0}.time{font-size:47px;font-weight:800;letter-spacing:-2px;color:var(--deep);font-variant-numeric:tabular-nums}
+.timer p{color:var(--muted);margin:0 0 15px}.timer-actions{display:flex;justify-content:center;gap:8px}
+.subjects{display:flex;flex-wrap:wrap;gap:8px}.subject{background:#f3f1fc;border-radius:10px;padding:8px 11px;color:var(--deep);font-size:13px;font-weight:650}
+.empty{color:var(--muted);font-size:14px;padding:10px 0}
+footer{text-align:center;color:#9995aa;font-size:12px;margin-top:24px}
+nav{display:none}
+@media(max-width:720px){.app{padding:14px 14px 35px}.layout{grid-template-columns:1fr}.stats{gap:7px}.stat{padding:10px}.stat b{font-size:20px}.card{padding:17px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="brand"><div class="mark">S</div> STUDYFLOW</div><span class="pill">YOUR STUDY SPACE</span></header>
+<h1 id="greeting">Make today count.</h1>
+<p class="sub" id="todayline">A little progress adds up.</p>
+<div class="layout">
+<main>
+<section class="card hero">
+  <div class="row"><div><div style="font-size:12px;font-weight:750;letter-spacing:.08em;opacity:.9">TODAY'S PROGRESS</div><div style="font-size:24px;font-weight:800;margin-top:3px" id="progressText">0 of 0 tasks done</div></div><div style="font-size:34px">✦</div></div>
+  <div class="progress"><i id="progressBar"></i></div>
+  <div class="stats">
+    <div class="stat"><b id="doneCount">0</b><span>COMPLETED</span></div>
+    <div class="stat"><b id="taskCount">0</b><span>PLANNED</span></div>
+    <div class="stat"><b id="streakCount">0</b><span>DAY STREAK*</span></div>
+  </div>
+  <div style="font-size:10px;opacity:.8;margin-top:9px">*Streak is a simple local demo counter.</div>
+</section>
+<section class="card" style="margin-top:16px">
+  <div class="row"><h2>Today's plan</h2><span class="pill" id="datePill">TODAY</span></div>
+  <div id="taskList"></div>
+  <form class="addrow" id="addForm"><input id="taskInput" maxlength="70" placeholder="Add a study task…" aria-label="New study task" required><button class="btn" type="submit">Add</button></form>
+</section>
+<section class="card" style="margin-top:16px">
+  <h2>Your subjects</h2>
+  <div class="subjects"><span class="subject">Mathematics</span><span class="subject">Science</span><span class="subject">English</span><span class="subject">History</span></div>
+  <p class="empty">Starter subjects — customise your plan by adding tasks above.</p>
+</section>
+</main>
+<aside>
+<section class="card">
+  <h2>Focus timer</h2>
+  <div class="timer"><div class="time" id="clock">25:00</div><p id="timerLabel">One focused session</p>
+  <div class="timer-actions"><button class="btn" id="startBtn">Start</button><button class="btn secondary" id="resetBtn">Reset</button></div></div>
+  <div class="row" style="margin-top:12px"><span style="font-size:13px;color:var(--muted)">Session length</span><select id="duration" style="border:1px solid var(--line);border-radius:9px;padding:6px"><option value="25">25 minutes</option><option value="15">15 minutes</option><option value="45">45 minutes</option></select></div>
+</section>
+<section class="card" style="margin-top:16px">
+  <h2>Study tip</h2>
+  <p style="color:var(--muted);margin:0">Try explaining a topic in your own words without looking at your notes. This helps you check what you really understand.</p>
+</section>
+<section class="card" style="margin-top:16px">
+  <h2>Your data</h2>
+  <p style="font-size:13px;color:var(--muted);margin-top:0">This prototype saves your tasks on this device only. No account or cloud sync yet.</p>
+  <button class="btn secondary" id="clearBtn">Reset demo data</button>
+</section>
+</aside>
+</div>
+<footer>STUDYFLOW · Small steps. Strong progress.</footer>
+</div>
+<script>
+const KEY='studyflow-v1';
+const starter=[{id:1,name:'Review today's class notes',done:false},{id:2,name:'Complete 5 practice questions',done:false},{id:3,name:'Read for 20 minutes',done:false}];
+let data;
+try{data=JSON.parse(localStorage.getItem(KEY))||{tasks:starter,streak:0,lastDone:''}}catch(e){data={tasks:starter,streak:0,lastDone:''}}
+const save=()=>localStorage.setItem(KEY,JSON.stringify(data));
+const $=id=>document.getElementById(id);
+const dateKey=new Date().toLocaleDateString('en-CA');
+$('greeting').textContent=(new Date().getHours()<12?'Good morning.':new Date().getHours()<18?'Good afternoon.':'Good evening.');
+$('todayline').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+' · A little progress adds up.';
+$('datePill').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'}).toUpperCase();
+function render(){
+ const list=$('taskList');list.innerHTML='';
+ if(!data.tasks.length){list.innerHTML='<div class="empty">No tasks yet. Add one to get started.</div>'}
+ data.tasks.forEach(t=>{
+  const el=document.createElement('label');el.className='task'+(t.done?' done':'');
+  const cb=document.createElement('input');cb.type='checkbox';cb.checked=t.done;cb.setAttribute('aria-label','Complete '+t.name);
+  cb.addEventListener('change',()=>{t.done=cb.checked;if(cb.checked&&data.lastDone!==dateKey){data.streak+=1;data.lastDone=dateKey}save();render()});
+  const wrap=document.createElement('span');wrap.style.flex='1';
+  const name=document.createElement('span');name.className='name';name.textContent=t.name;
+  const small=document.createElement('small');small.textContent='Study task';
+  wrap.append(name,small);
+  const del=document.createElement('button');del.type='button';del.className='btn ghost';del.textContent='×';del.setAttribute('aria-label','Delete '+t.name);del.addEventListener('click',()=>{data.tasks=data.tasks.filter(x=>x.id!==t.id);save();render()});
+  el.append(cb,wrap,del);list.append(el);
+ });
+ const done=data.tasks.filter(t=>t.done).length,total=data.tasks.length,pct=total?done/total*100:0;
+ $('progressText').textContent=`${done} of ${total} tasks done`;$('progressBar').style.width=pct+'%';
+ $('doneCount').textContent=done;$('taskCount').textContent=total;$('streakCount').textContent=data.streak;
+}
+$('addForm').addEventListener('submit',e=>{e.preventDefault();const name=$('taskInput').value.trim();if(!name)return;data.tasks.push({id:Date.now(),name,done:false});$('taskInput').value='';save();render()});
+let seconds=1500,remaining=1500,interval=null;
+function showClock(){ $('clock').textContent=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0') }
+function stop(){if(interval){clearInterval(interval);interval=null}$('startBtn').textContent='Start'}
+$('startBtn').addEventListener('click',()=>{if(interval){stop();return}$('startBtn').textContent='Pause';interval=setInterval(()=>{remaining--;showClock();if(remaining<=0){stop();$('timerLabel').textContent='Session complete — take a short break.';if('Notification'in window&&Notification.permission==='granted')new Notification('STUDYFLOW',{body:'Your focus session is complete.'})}},1000)});
+$('resetBtn').addEventListener('click',()=>{stop();remaining=seconds;showClock();$('timerLabel').textContent='One focused session'});
+$('duration').addEventListener('change',e=>{stop();seconds=Number(e.target.value)*60;remaining=seconds;showClock();$('timerLabel').textContent='One focused session'});
+$('clearBtn').addEventListener('click',()=>{if(confirm('Reset all tasks and demo progress on this device?')){data={tasks:[],streak:0,lastDone:''};save();render()}});
+render();showClock();
+if('serviceWorker'in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script>
+</body></html>

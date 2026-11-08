@@ -1,0 +1,9 @@
+{
+  "name": "STUDYFLOW \u2014 Your day, in focus",
+  "short_name": "STUDYFLOW",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7f6fc",
+  "theme_color": "#7665d8",
+  "description": "Turn study goals into a simple daily plan."
+}
