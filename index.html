@@ -97,7 +97,7 @@ nav{display:none}
   (() => {
   const $ = id => document.getElementById(id);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString('en-CA');
   const storageKey = 'sf_tasks_' + today;
 
   let tasks = [];
@@ -109,23 +109,39 @@ nav{display:none}
     tasks = [];
   }
 
-  function saveTasks() {
+  let seconds = 25 * 60;
+  let timer = null;
+
+  function save() {
     localStorage.setItem(storageKey, JSON.stringify(tasks));
   }
 
-  function renderTasks() {
+  function render() {
+    const done = tasks.filter(task => task.done).length;
+    const total = tasks.length;
+
+    $('doneCount').textContent = done;
+    $('taskCount').textContent = total;
+    $('progressText').textContent =
+      done + ' of ' + total + ' tasks done';
+
+    $('progressBar').style.width =
+      (total ? done / total * 100 : 0) + '%';
+
+    $('streakCount').textContent = done > 0 ? '1' : '0';
+
     const list = $('taskList');
     list.innerHTML = '';
 
-    if (tasks.length === 0) {
-      const empty = document.createElement('li');
+    if (total === 0) {
+      const empty = document.createElement('p');
       empty.className = 'empty';
-      empty.textContent = 'No tasks yet. Add your first task above ✦';
+      empty.textContent = 'No tasks yet. Add your first task above!';
       list.appendChild(empty);
     }
 
     tasks.forEach(task => {
-      const item = document.createElement('li');
+      const item = document.createElement('div');
       item.className = 'task' + (task.done ? ' done' : '');
 
       const checkbox = document.createElement('input');
@@ -134,21 +150,21 @@ nav{display:none}
 
       checkbox.addEventListener('change', () => {
         task.done = checkbox.checked;
-        saveTasks();
+        save();
         render();
       });
 
       const name = document.createElement('span');
-      name.className = 'task-name';
+      name.className = 'name';
       name.textContent = task.text;
 
       const remove = document.createElement('button');
-      remove.className = 'delete';
-      remove.textContent = '×';
+      remove.className = 'btn ghost';
+      remove.textContent = 'Delete';
 
       remove.addEventListener('click', () => {
         tasks = tasks.filter(t => t.id !== task.id);
-        saveTasks();
+        save();
         render();
       });
 
@@ -157,23 +173,7 @@ nav{display:none}
     });
   }
 
-  function render() {
-    const done = tasks.filter(t => t.done).length;
-    const left = tasks.length - done;
-
-    $('doneStat').textContent = done;
-    $('leftStat').textContent = left;
-    $('taskCount').textContent = tasks.length + ' tasks';
-
-    const goal = Number(localStorage.getItem('sf_goal')) || 5;
-    $('goalLabel').textContent = done + ' / ' + goal;
-    $('goalFill').style.width =
-      Math.min(100, done / goal * 100) + '%';
-
-    renderTasks();
-  }
-
-  $('taskForm').addEventListener('submit', event => {
+  $('addForm').addEventListener('submit', event => {
     event.preventDefault();
 
     const input = $('taskInput');
@@ -182,27 +182,82 @@ nav{display:none}
     if (!text) return;
 
     tasks.push({
-      id: Date.now() + Math.random(),
+      id: Date.now(),
       text: text,
       done: false
     });
 
-    saveTasks();
+    save();
     input.value = '';
     render();
   });
 
-  $('saveGoal').addEventListener('click', () => {
-    const goal = Math.max(
-      1,
-      Math.min(30, Number($('goalInput').value) || 5)
-    );
+  function showClock() {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
 
-    localStorage.setItem('sf_goal', goal);
-    $('goalInput').value = goal;
-    render();
+    $('clock').textContent =
+      String(minutes).padStart(2, '0') + ':' +
+      String(secs).padStart(2, '0');
+  }
+
+  function stopTimer() {
+    clearInterval(timer);
+    timer = null;
+    $('startBtn').textContent = 'Start';
+  }
+
+  $('startBtn').addEventListener('click', () => {
+    if (timer) {
+      stopTimer();
+      return;
+    }
+
+    $('startBtn').textContent = 'Pause';
+
+    timer = setInterval(() => {
+      seconds--;
+      showClock();
+
+      if (seconds <= 0) {
+        stopTimer();
+        $('timerLabel').textContent = 'Session complete! Well done.';
+      }
+    }, 1000);
   });
 
+  $('resetBtn').addEventListener('click', () => {
+    stopTimer();
+    seconds = Number($('duration').value) * 60;
+    $('timerLabel').textContent = 'One focused session';
+    showClock();
+  });
+
+  $('duration').addEventListener('change', () => {
+    stopTimer();
+    seconds = Number($('duration').value) * 60;
+    showClock();
+  });
+
+  $('clearBtn').addEventListener('click', () => {
+    if (confirm('Delete all today’s tasks?')) {
+      tasks = [];
+      save();
+      render();
+    }
+  });
+
+  $('greeting').textContent = 'Make today count.';
+  $('todayline').textContent =
+    new Date().toLocaleDateString(undefined, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long'
+    });
+
+  $('datePill').textContent = 'TODAY';
+
+  showClock();
   render();
 })();
 </script>
