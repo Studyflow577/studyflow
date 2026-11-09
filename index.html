@@ -94,43 +94,115 @@ nav{display:none}
 <footer>STUDYFLOW · Small steps. Strong progress.</footer>
 </div>
 <script>
-const KEY='studyflow-v1';
-const starter=[{id:1,name:'Review today's class notes',done:false},{id:2,name:'Complete 5 practice questions',done:false},{id:3,name:'Read for 20 minutes',done:false}];
-let data;
-try{data=JSON.parse(localStorage.getItem(KEY))||{tasks:starter,streak:0,lastDone:''}}catch(e){data={tasks:starter,streak:0,lastDone:''}}
-const save=()=>localStorage.setItem(KEY,JSON.stringify(data));
-const $=id=>document.getElementById(id);
-const dateKey=new Date().toLocaleDateString('en-CA');
-$('greeting').textContent=(new Date().getHours()<12?'Good morning.':new Date().getHours()<18?'Good afternoon.':'Good evening.');
-$('todayline').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+' · A little progress adds up.';
-$('datePill').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'}).toUpperCase();
-function render(){
- const list=$('taskList');list.innerHTML='';
- if(!data.tasks.length){list.innerHTML='<div class="empty">No tasks yet. Add one to get started.</div>'}
- data.tasks.forEach(t=>{
-  const el=document.createElement('label');el.className='task'+(t.done?' done':'');
-  const cb=document.createElement('input');cb.type='checkbox';cb.checked=t.done;cb.setAttribute('aria-label','Complete '+t.name);
-  cb.addEventListener('change',()=>{t.done=cb.checked;if(cb.checked&&data.lastDone!==dateKey){data.streak+=1;data.lastDone=dateKey}save();render()});
-  const wrap=document.createElement('span');wrap.style.flex='1';
-  const name=document.createElement('span');name.className='name';name.textContent=t.name;
-  const small=document.createElement('small');small.textContent='Study task';
-  wrap.append(name,small);
-  const del=document.createElement('button');del.type='button';del.className='btn ghost';del.textContent='×';del.setAttribute('aria-label','Delete '+t.name);del.addEventListener('click',()=>{data.tasks=data.tasks.filter(x=>x.id!==t.id);save();render()});
-  el.append(cb,wrap,del);list.append(el);
- });
- const done=data.tasks.filter(t=>t.done).length,total=data.tasks.length,pct=total?done/total*100:0;
- $('progressText').textContent=`${done} of ${total} tasks done`;$('progressBar').style.width=pct+'%';
- $('doneCount').textContent=done;$('taskCount').textContent=total;$('streakCount').textContent=data.streak;
-}
-$('addForm').addEventListener('submit',e=>{e.preventDefault();const name=$('taskInput').value.trim();if(!name)return;data.tasks.push({id:Date.now(),name,done:false});$('taskInput').value='';save();render()});
-let seconds=1500,remaining=1500,interval=null;
-function showClock(){ $('clock').textContent=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0') }
-function stop(){if(interval){clearInterval(interval);interval=null}$('startBtn').textContent='Start'}
-$('startBtn').addEventListener('click',()=>{if(interval){stop();return}$('startBtn').textContent='Pause';interval=setInterval(()=>{remaining--;showClock();if(remaining<=0){stop();$('timerLabel').textContent='Session complete — take a short break.';if('Notification'in window&&Notification.permission==='granted')new Notification('STUDYFLOW',{body:'Your focus session is complete.'})}},1000)});
-$('resetBtn').addEventListener('click',()=>{stop();remaining=seconds;showClock();$('timerLabel').textContent='One focused session'});
-$('duration').addEventListener('change',e=>{stop();seconds=Number(e.target.value)*60;remaining=seconds;showClock();$('timerLabel').textContent='One focused session'});
-$('clearBtn').addEventListener('click',()=>{if(confirm('Reset all tasks and demo progress on this device?')){data={tasks:[],streak:0,lastDone:''};save();render()}});
-render();showClock();
-if('serviceWorker'in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  (() => {
+  const $ = id => document.getElementById(id);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const storageKey = 'sf_tasks_' + today;
+
+  let tasks = [];
+
+  try {
+    tasks = JSON.parse(localStorage.getItem(storageKey)) || [];
+    if (!Array.isArray(tasks)) tasks = [];
+  } catch {
+    tasks = [];
+  }
+
+  function saveTasks() {
+    localStorage.setItem(storageKey, JSON.stringify(tasks));
+  }
+
+  function renderTasks() {
+    const list = $('taskList');
+    list.innerHTML = '';
+
+    if (tasks.length === 0) {
+      const empty = document.createElement('li');
+      empty.className = 'empty';
+      empty.textContent = 'No tasks yet. Add your first task above ✦';
+      list.appendChild(empty);
+    }
+
+    tasks.forEach(task => {
+      const item = document.createElement('li');
+      item.className = 'task' + (task.done ? ' done' : '');
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = task.done;
+
+      checkbox.addEventListener('change', () => {
+        task.done = checkbox.checked;
+        saveTasks();
+        render();
+      });
+
+      const name = document.createElement('span');
+      name.className = 'task-name';
+      name.textContent = task.text;
+
+      const remove = document.createElement('button');
+      remove.className = 'delete';
+      remove.textContent = '×';
+
+      remove.addEventListener('click', () => {
+        tasks = tasks.filter(t => t.id !== task.id);
+        saveTasks();
+        render();
+      });
+
+      item.append(checkbox, name, remove);
+      list.appendChild(item);
+    });
+  }
+
+  function render() {
+    const done = tasks.filter(t => t.done).length;
+    const left = tasks.length - done;
+
+    $('doneStat').textContent = done;
+    $('leftStat').textContent = left;
+    $('taskCount').textContent = tasks.length + ' tasks';
+
+    const goal = Number(localStorage.getItem('sf_goal')) || 5;
+    $('goalLabel').textContent = done + ' / ' + goal;
+    $('goalFill').style.width =
+      Math.min(100, done / goal * 100) + '%';
+
+    renderTasks();
+  }
+
+  $('taskForm').addEventListener('submit', event => {
+    event.preventDefault();
+
+    const input = $('taskInput');
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    tasks.push({
+      id: Date.now() + Math.random(),
+      text: text,
+      done: false
+    });
+
+    saveTasks();
+    input.value = '';
+    render();
+  });
+
+  $('saveGoal').addEventListener('click', () => {
+    const goal = Math.max(
+      1,
+      Math.min(30, Number($('goalInput').value) || 5)
+    );
+
+    localStorage.setItem('sf_goal', goal);
+    $('goalInput').value = goal;
+    render();
+  });
+
+  render();
+})();
 </script>
-</body></html>
